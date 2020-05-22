@@ -6,13 +6,13 @@ const path = require('path');
 
 module.exports = {
     context: path.resolve(__dirname, 'src'), // путь к основной папке где будет все приложение
-    mode: "development", // режим разработки
+    mode: 'development', // режим разработки
 
     entry: {
         main: './index.js'
     }, // входные точки для приложения
     output: {
-        filename: 'bundle[hash].js', // где будут находиться все js скрипты
+        filename: 'bundle.[hash].js', // где будут находиться все js скрипты
         path: path.resolve(__dirname, 'dist'), // куда складывать
     },
     resolve: {
@@ -36,7 +36,31 @@ module.exports = {
         }),
         new CleanWebpackPlugin(),
         new MiniCssExtractPlugin({
-            filename: "bundle[hash].css"
+            filename: 'bundle.[hash].css'
         })
-    ]
+    ],
+    module: {
+        rules: [
+            {
+                test: /\.s[ac]ss$/i,
+                use: [
+                    MiniCssExtractPlugin.loader,
+                    // Translates CSS into CommonJS
+                    'css-loader',
+                    // Compiles Sass to CSS
+                    'sass-loader',
+                ],
+            },
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                loader: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env']
+                    }
+                }
+            }
+        ],
+    }
 }
