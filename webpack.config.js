@@ -1,19 +1,45 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const {CleanWebpackPlugin} = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 
+const isProd = process.env.NODE_ENV === 'production';
+const isDev = !isProd;
+
+const fileName = ext => isDev ? `bundle.${ext}` : `bundle.[hash].${ext}`;
+
+const jsLoaders = () => {
+    const loaders = [
+        {
+            loader: 'babel-loader',
+            options: {
+                presets: ['@babel/preset-env']
+            }
+        }
+    ]
+
+    if (isDev) {
+        loaders.push('eslint-loader')
+    }
+
+    return loaders;
+}
+
 module.exports = {
+
     context: path.resolve(__dirname, 'src'), // путь к основной папке где будет все приложение
     mode: 'development', // режим разработки
 
-    entry: {
-        main: './index.js'
-    }, // входные точки для приложения
+    entry: ['@babel/polyfill', './index.js'], // входные точки для приложения
     output: {
-        filename: 'bundle.[hash].js', // где будут находиться все js скрипты
+        filename: fileName('js'), // где будут находиться все js скрипты
         path: path.resolve(__dirname, 'dist'), // куда складывать
+    },
+    devtool: isDev ? 'source-map' : false,
+    devServer: {
+        port: 3000,
+        hot: isDev
     },
     resolve: {
         extensions: ['.js'],
@@ -24,7 +50,11 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: "index.html"
+            template: "index.html",
+            minify: {
+                removeComments: isProd,
+                collapseWhitespace: isProd
+            }
         }),
         new CopyPlugin({
             patterns: [
@@ -36,7 +66,7 @@ module.exports = {
         }),
         new CleanWebpackPlugin(),
         new MiniCssExtractPlugin({
-            filename: 'bundle.[hash].css'
+            filename: fileName('css')
         })
     ],
     module: {
@@ -44,7 +74,13 @@ module.exports = {
             {
                 test: /\.s[ac]ss$/i,
                 use: [
-                    MiniCssExtractPlugin.loader,
+                    {
+                        loader: MiniCssExtractPlugin.loader,
+                        options: {
+                            hmr: isDev,
+                            reloadAll: true
+                        }
+                    },
                     // Translates CSS into CommonJS
                     'css-loader',
                     // Compiles Sass to CSS
@@ -54,12 +90,7 @@ module.exports = {
             {
                 test: /\.js$/,
                 exclude: /node_modules/,
-                loader: {
-                    loader: 'babel-loader',
-                    options: {
-                        presets: ['@babel/preset-env']
-                    }
-                }
+                use: jsLoaders()
             }
         ],
     }
